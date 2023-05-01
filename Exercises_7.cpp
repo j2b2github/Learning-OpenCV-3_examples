@@ -83,11 +83,11 @@ int main( int argc, const char** argv )
 	// b
 	rng.fill(planes[2],RNG::NORMAL,128,2);
 	// c 
-	PCA pca(planes[0],Mat(),CV_PCA_DATA_AS_ROW,2);
+	PCA pca(planes[0],Mat(),PCA::DATA_AS_ROW,2);
 	planes[0] = pca.project(planes[0]);
-	pca(planes[1],Mat(),CV_PCA_DATA_AS_ROW,2);
+	pca(planes[1],Mat(),PCA::DATA_AS_ROW,2);
 	planes[1] = pca.project(planes[1]);
-	pca(planes[2],Mat(),CV_PCA_DATA_AS_ROW,2);
+	pca(planes[2],Mat(),PCA::DATA_AS_ROW,2);
 	planes[2] = pca.project(planes[2]);
 	//d
 	f1 = 0;
