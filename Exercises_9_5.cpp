@@ -1,30 +1,34 @@
-//Exercises_9_5.cpp Exercises at end of Chapter 9
+// Exercises_9_5.cpp Exercises at end of Chapter 9
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
 using namespace cv;
 using namespace std;
 
- 
-void help(const char **argv) {
+void help(const char **argv)
+{
 	cout << "\n\n"
-		<< "This program solves the Exercise 4、5 at the end of Chapter 9 \n"
-		<< "Call:\n"
-		<< argv[0] << " <path/image_name1>" << " <path/image_name2>\n\n"
-		<< "For example: ./" << argv[0] << " ../left.jpg "<< " ../left.jpg\n"
-		<< endl;
+		 << "This program solves the Exercise 4、5 at the end of Chapter 9 \n"
+		 << "Call:\n"
+		 << argv[0] << " <path/image_name1>"
+		 << " <path/image_name2>\n\n"
+		 << "For example: ./" << argv[0] << "/usr/local/share/opencv4/samples/data/lena.jpg"
+    	 << "/usr/local/share/opencv4/samples/data/lena_tmpl.jpg\n"
+		 << endl;
 }
 
-int main( int argc, const char** argv )
+int main(int argc, const char **argv)
 {
 	help(argv);
-	if(argc < 3) {
-		cout << "\nERROR: You had too few parameters.\n" << endl;
+	if (argc < 3)
+	{
+		cout << "\nERROR: You had too few parameters.\n"
+			 << endl;
 		return -1;
 	}
 	Mat temp;
 	Mat temp2;
- /************************************************************************/
+	/************************************************************************/
 	/* 5.  Create an outline of an object. Take a picture of a scene. Then, without moving
 	the camera, put a coffee cup in the scene and take a second picture. Load these
 	images and convert both to 8-bit grayscale images.
@@ -38,27 +42,27 @@ int main( int argc, const char** argv )
 	coffee  cup  image  into  an  outline  of  the  coffee  cup  (only  the  edge  pixels
 	remaining).                                                                     */
 	/************************************************************************/
-	Mat matMug = imread(argv[1],IMREAD_GRAYSCALE);
-	Mat matNoMug = imread(argv[2],IMREAD_GRAYSCALE);
+	Mat matMug = imread(argv[1], IMREAD_GRAYSCALE);
+	Mat matNoMug = imread(argv[2], IMREAD_GRAYSCALE);
 	if (matMug.empty() || matNoMug.empty())
 	{
-		cout << "\nERROR: parameters is not a image name.\n" << endl;
+		cout << "\nERROR: parameters is not a image name.\n"
+			 << endl;
 		return -1;
 	}
-	//a
-	absdiff(matMug,matNoMug,temp);
-	imshow("absolute  value  of  mug ",temp);
-	//b
-	threshold(temp,temp,100,255,THRESH_OTSU);
-	imshow("a binary threshold",temp);
-	//c
-	morphologyEx(temp,temp,cv::MORPH_OPEN,Mat());
-	imshow("MORPH_OPEN",temp);
-	//d
-	erode(temp,temp,Mat());
-	matMug.copyTo(temp2,temp);
-	imshow("an outline of the coffee cup",temp2);
+	// a
+	absdiff(matMug, matNoMug, temp);
+	imshow("absolute  value  of  mug ", temp);
+	// b
+	threshold(temp, temp, 100, 255, THRESH_OTSU);
+	imshow("a binary threshold", temp);
+	// c
+	morphologyEx(temp, temp, cv::MORPH_OPEN, Mat());
+	imshow("MORPH_OPEN", temp);
+	// d
+	erode(temp, temp, Mat());
+	matMug.copyTo(temp2, temp);
+	imshow("an outline of the coffee cup", temp2);
 	waitKey();
 	return 0;
-
 }

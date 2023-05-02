@@ -1,12 +1,11 @@
 
-//Exercises_13_9.cpp Exercise 9 at end of Chapter 13
+// Exercises_13_9.cpp Exercise 9 at end of Chapter 13
 /************************************************************************/
-	/* 9. Write  an  image-processing  function  to  interactively  remove  people  from  an
-	image. Use cv::grabCut() to segment the person, and then use cv::inpaint()
-	to  fill  in  the  resulting  hole  (recall  that  we  learned  about  cv::inpaint()  in  the
-	previous chapter).                                                                     */
+/* 9. Write  an  image-processing  function  to  interactively  remove  people  from  an
+image. Use cv::grabCut() to segment the person, and then use cv::inpaint()
+to  fill  in  the  resulting  hole  (recall  that  we  learned  about  cv::inpaint()  in  the
+previous chapter).                                                                     */
 /************************************************************************/
-
 
 #include "opencv2/imgcodecs.hpp"
 #include "opencv2/highgui.hpp"
@@ -21,61 +20,68 @@ using namespace cv;
 static void help()
 {
 	cout << "\nThis program demonstrates GrabCut segmentation -- select an object in a region\n"
-		"and then grabcut will attempt to segment it out.\n"
-		"Call:\n"
-		"./grabcut <image_name>\n"
-		"\nSelect a rectangular area around the object you want to segment\n" <<
-		"\nHot keys: \n"
-		"\tESC - quit the program\n"
-		"\tr - restore the original image\n"
-		"\tn - next iteration\n"
-		"\n"
-		"\tleft mouse button - set rectangle\n"
-		"\n"
-		"\tCTRL+left mouse button - set GC_BGD pixels\n"
-		"\tSHIFT+left mouse button - set GC_FGD pixels\n"
-		"\n"
-		"\tCTRL+right mouse button - set GC_PR_BGD pixels\n"
-		"\tSHIFT+right mouse button - set GC_PR_FGD pixels\n" << endl;
+			"and then grabcut will attempt to segment it out.\n"
+			"Call:\n"
+			"./grabcut <image_name>\n"
+			"\nSelect a rectangular area around the object you want to segment\n"
+		 << "\nHot keys: \n"
+			"\tESC - quit the program\n"
+			"\tr - restore the original image\n"
+			"\tn - next iteration\n"
+			"\n"
+			"\tleft mouse button - set rectangle\n"
+			"\n"
+			"\tCTRL+left mouse button - set GC_BGD pixels\n"
+			"\tSHIFT+left mouse button - set GC_FGD pixels\n"
+			"\n"
+			"\tCTRL+right mouse button - set GC_PR_BGD pixels\n"
+			"\tSHIFT+right mouse button - set GC_PR_FGD pixels\n"
+		 << endl;
 }
 
-const Scalar RED = Scalar(0,0,255);
-const Scalar PINK = Scalar(230,130,255);
-const Scalar BLUE = Scalar(255,0,0);
-const Scalar LIGHTBLUE = Scalar(255,255,160);
-const Scalar GREEN = Scalar(0,255,0);
+const Scalar RED = Scalar(0, 0, 255);
+const Scalar PINK = Scalar(230, 130, 255);
+const Scalar BLUE = Scalar(255, 0, 0);
+const Scalar LIGHTBLUE = Scalar(255, 255, 160);
+const Scalar GREEN = Scalar(0, 255, 0);
 
 const int BGD_KEY = EVENT_FLAG_CTRLKEY;
 const int FGD_KEY = EVENT_FLAG_SHIFTKEY;
 
-static void getBinMask( const Mat& comMask, Mat& binMask )
+static void getBinMask(const Mat &comMask, Mat &binMask)
 {
-	if( comMask.empty() || comMask.type()!=CV_8UC1 )
-		CV_Error( Error::StsBadArg, "comMask is empty or has incorrect type (not CV_8UC1)" );
-	if( binMask.empty() || binMask.rows!=comMask.rows || binMask.cols!=comMask.cols )
-		binMask.create( comMask.size(), CV_8UC1 );
+	if (comMask.empty() || comMask.type() != CV_8UC1)
+		CV_Error(Error::StsBadArg, "comMask is empty or has incorrect type (not CV_8UC1)");
+	if (binMask.empty() || binMask.rows != comMask.rows || binMask.cols != comMask.cols)
+		binMask.create(comMask.size(), CV_8UC1);
 	binMask = comMask & 1;
 }
 
 class GCApplication
 {
 public:
-	enum{ NOT_SET = 0, IN_PROCESS = 1, SET = 2 };
+	enum
+	{
+		NOT_SET = 0,
+		IN_PROCESS = 1,
+		SET = 2
+	};
 	static const int radius = 2;
 	static const int thickness = -1;
 
 	void reset();
-	void setImageAndWinName( const Mat& _image, const string& _winName );
+	void setImageAndWinName(const Mat &_image, const string &_winName);
 	void showImage() const;
-	void mouseClick( int event, int x, int y, int flags, void* param );
+	void mouseClick(int event, int x, int y, int flags, void *param);
 	int nextIter();
 	int getIterCount() const { return iterCount; }
+
 private:
 	void setRectInMask();
-	void setLblsInMask( int flags, Point p, bool isPr );
+	void setLblsInMask(int flags, Point p, bool isPr);
 
-	const string* winName;
-	const Mat* image;
+	const string *winName;
+	const Mat *image;
 	Mat mask;
 	Mat bgdModel, fgdModel;
 
@@ -89,10 +95,12 @@ private:
 
 void GCApplication::reset()
 {
-	if( !mask.empty() )
+	if (!mask.empty())
 		mask.setTo(Scalar::all(GC_BGD));
-	bgdPxls.clear(); fgdPxls.clear();
-	prBgdPxls.clear();  prFgdPxls.clear();
+	bgdPxls.clear();
+	fgdPxls.clear();
+	prBgdPxls.clear();
+	prFgdPxls.clear();
 
 	isInitialized = false;
 	rectState = NOT_SET;
@@ -101,70 +109,70 @@ void GCApplication::reset()
 	iterCount = 0;
 }
 
-void GCApplication::setImageAndWinName( const Mat& _image, const string& _winName  )
+void GCApplication::setImageAndWinName(const Mat &_image, const string &_winName)
 {
-	if( _image.empty() || _winName.empty() )
+	if (_image.empty() || _winName.empty())
 		return;
 	image = &_image;
 	winName = &_winName;
-	mask.create( image->size(), CV_8UC1);
+	mask.create(image->size(), CV_8UC1);
 	reset();
 }
 
 void GCApplication::showImage() const
 {
-	if( image->empty() || winName->empty() )
+	if (image->empty() || winName->empty())
 		return;
 
 	Mat res;
 	Mat binMask;
-	if( !isInitialized )
-		image->copyTo( res );
+	if (!isInitialized)
+		image->copyTo(res);
 	else
 	{
-		getBinMask( mask, binMask );
-		image->copyTo( res, binMask );
+		getBinMask(mask, binMask);
+		image->copyTo(res, binMask);
 		// mask and source code
 		Mat src = *image;
 		Mat mask = binMask;
-		//inpaint
+		// inpaint
 		Mat inpainted;
-		inpaint(src, mask, inpainted, 3, CV_INPAINT_TELEA);
-	    imshow("inpainted result",inpainted);
+		inpaint(src, mask, inpainted, 3, cv::INPAINT_TELEA);
+		imshow("inpainted result", inpainted);
 	}
 
 	vector<Point>::const_iterator it;
-	for( it = bgdPxls.begin(); it != bgdPxls.end(); ++it )
-		circle( res, *it, radius, BLUE, thickness );
-	for( it = fgdPxls.begin(); it != fgdPxls.end(); ++it )
-		circle( res, *it, radius, RED, thickness );
-	for( it = prBgdPxls.begin(); it != prBgdPxls.end(); ++it )
-		circle( res, *it, radius, LIGHTBLUE, thickness );
-	for( it = prFgdPxls.begin(); it != prFgdPxls.end(); ++it )
-		circle( res, *it, radius, PINK, thickness );
+	for (it = bgdPxls.begin(); it != bgdPxls.end(); ++it)
+		circle(res, *it, radius, BLUE, thickness);
+	for (it = fgdPxls.begin(); it != fgdPxls.end(); ++it)
+		circle(res, *it, radius, RED, thickness);
+	for (it = prBgdPxls.begin(); it != prBgdPxls.end(); ++it)
+		circle(res, *it, radius, LIGHTBLUE, thickness);
+	for (it = prFgdPxls.begin(); it != prFgdPxls.end(); ++it)
+		circle(res, *it, radius, PINK, thickness);
 
-	if( rectState == IN_PROCESS || rectState == SET )
-		rectangle( res, Point( rect.x, rect.y ), Point(rect.x + rect.width, rect.y + rect.height ), GREEN, 2);
+	if (rectState == IN_PROCESS || rectState == SET)
+		rectangle(res, Point(rect.x, rect.y), Point(rect.x + rect.width, rect.y + rect.height), GREEN, 2);
 
-	imshow( *winName, res );
+	imshow(*winName, res);
 }
 
 void GCApplication::setRectInMask()
 {
-	CV_Assert( !mask.empty() );
-	mask.setTo( GC_BGD );
+	CV_Assert(!mask.empty());
+	mask.setTo(GC_BGD);
 	rect.x = max(0, rect.x);
 	rect.y = max(0, rect.y);
-	rect.width = min(rect.width, image->cols-rect.x);
-	rect.height = min(rect.height, image->rows-rect.y);
-	(mask(rect)).setTo( Scalar(GC_PR_FGD) );
+	rect.width = min(rect.width, image->cols - rect.x);
+	rect.height = min(rect.height, image->rows - rect.y);
+	(mask(rect)).setTo(Scalar(GC_PR_FGD));
 }
 
-void GCApplication::setLblsInMask( int flags, Point p, bool isPr )
+void GCApplication::setLblsInMask(int flags, Point p, bool isPr)
 {
 	vector<Point> *bpxls, *fpxls;
 	uchar bvalue, fvalue;
-	if( !isPr )
+	if (!isPr)
 	{
 		bpxls = &bgdPxls;
 		fpxls = &fgdPxls;
@@ -178,83 +186,83 @@ void GCApplication::setLblsInMask( int flags, Point p, bool isPr )
 		bvalue = GC_PR_BGD;
 		fvalue = GC_PR_FGD;
 	}
-	if( flags & BGD_KEY )
+	if (flags & BGD_KEY)
 	{
 		bpxls->push_back(p);
-		circle( mask, p, radius, bvalue, thickness );
+		circle(mask, p, radius, bvalue, thickness);
 	}
-	if( flags & FGD_KEY )
+	if (flags & FGD_KEY)
 	{
 		fpxls->push_back(p);
-		circle( mask, p, radius, fvalue, thickness );
+		circle(mask, p, radius, fvalue, thickness);
 	}
 }
 
-void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
+void GCApplication::mouseClick(int event, int x, int y, int flags, void *)
 {
 	// TODO add bad args check
-	switch( event )
+	switch (event)
 	{
 	case EVENT_LBUTTONDOWN: // set rect or GC_BGD(GC_FGD) labels
+	{
+		bool isb = (flags & BGD_KEY) != 0,
+			 isf = (flags & FGD_KEY) != 0;
+		if (rectState == NOT_SET && !isb && !isf)
 		{
-			bool isb = (flags & BGD_KEY) != 0,
-				isf = (flags & FGD_KEY) != 0;
-			if( rectState == NOT_SET && !isb && !isf )
-			{
-				rectState = IN_PROCESS;
-				rect = Rect( x, y, 1, 1 );
-			}
-			if ( (isb || isf) && rectState == SET )
-				lblsState = IN_PROCESS;
+			rectState = IN_PROCESS;
+			rect = Rect(x, y, 1, 1);
 		}
-		break;
+		if ((isb || isf) && rectState == SET)
+			lblsState = IN_PROCESS;
+	}
+	break;
 	case EVENT_RBUTTONDOWN: // set GC_PR_BGD(GC_PR_FGD) labels
-		{
-			bool isb = (flags & BGD_KEY) != 0,
-				isf = (flags & FGD_KEY) != 0;
-			if ( (isb || isf) && rectState == SET )
-				prLblsState = IN_PROCESS;
-		}
-		break;
+	{
+		bool isb = (flags & BGD_KEY) != 0,
+			 isf = (flags & FGD_KEY) != 0;
+		if ((isb || isf) && rectState == SET)
+			prLblsState = IN_PROCESS;
+	}
+	break;
 	case EVENT_LBUTTONUP:
-		if( rectState == IN_PROCESS )
+		if (rectState == IN_PROCESS)
 		{
-			rect = Rect( Point(rect.x, rect.y), Point(x,y) );
+			rect = Rect(Point(rect.x, rect.y), Point(x, y));
 			rectState = SET;
 			setRectInMask();
-			CV_Assert( bgdPxls.empty() && fgdPxls.empty() && prBgdPxls.empty() && prFgdPxls.empty() );
+			CV_Assert(bgdPxls.empty() && fgdPxls.empty() && prBgdPxls.empty() && prFgdPxls.empty());
 			showImage();
 		}
-		if( lblsState == IN_PROCESS )
+		if (lblsState == IN_PROCESS)
 		{
-			setLblsInMask(flags, Point(x,y), false);
+			setLblsInMask(flags, Point(x, y), false);
 			lblsState = SET;
 			showImage();
 		}
 		break;
 	case EVENT_RBUTTONUP:
-		if( prLblsState == IN_PROCESS )
+		if (prLblsState == IN_PROCESS)
 		{
-			setLblsInMask(flags, Point(x,y), true);
+			setLblsInMask(flags, Point(x, y), true);
 			prLblsState = SET;
 			showImage();
 		}
 		break;
 	case EVENT_MOUSEMOVE:
-		if( rectState == IN_PROCESS )
+		if (rectState == IN_PROCESS)
 		{
-			rect = Rect( Point(rect.x, rect.y), Point(x,y) );
-			CV_Assert( bgdPxls.empty() && fgdPxls.empty() && prBgdPxls.empty() && prFgdPxls.empty() );
+			rect = Rect(Point(rect.x, rect.y), Point(x, y));
+			CV_Assert(bgdPxls.empty() && fgdPxls.empty() && prBgdPxls.empty() && prFgdPxls.empty());
 			showImage();
 		}
-		else if( lblsState == IN_PROCESS )
+		else if (lblsState == IN_PROCESS)
 		{
-			setLblsInMask(flags, Point(x,y), false);
+			setLblsInMask(flags, Point(x, y), false);
 			showImage();
 		}
-		else if( prLblsState == IN_PROCESS )
+		else if (prLblsState == IN_PROCESS)
 		{
-			setLblsInMask(flags, Point(x,y), true);
+			setLblsInMask(flags, Point(x, y), true);
 			showImage();
 		}
 		break;
@@ -263,36 +271,38 @@ void GCApplication::mouseClick( int event, int x, int y, int flags, void* )
 
 int GCApplication::nextIter()
 {
-	if( isInitialized )
-		grabCut( *image, mask, rect, bgdModel, fgdModel, 1 );
+	if (isInitialized)
+		grabCut(*image, mask, rect, bgdModel, fgdModel, 1);
 	else
 	{
-		if( rectState != SET )
+		if (rectState != SET)
 			return iterCount;
 
-		if( lblsState == SET || prLblsState == SET )
-			grabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_MASK );
+		if (lblsState == SET || prLblsState == SET)
+			grabCut(*image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_MASK);
 		else
-			grabCut( *image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_RECT );
+			grabCut(*image, mask, rect, bgdModel, fgdModel, 1, GC_INIT_WITH_RECT);
 
 		isInitialized = true;
 	}
 	iterCount++;
 
-	bgdPxls.clear(); fgdPxls.clear();
-	prBgdPxls.clear(); prFgdPxls.clear();
+	bgdPxls.clear();
+	fgdPxls.clear();
+	prBgdPxls.clear();
+	prFgdPxls.clear();
 
 	return iterCount;
 }
 
 GCApplication gcapp;
 
-static void on_mouse( int event, int x, int y, int flags, void* param )
+static void on_mouse(int event, int x, int y, int flags, void *param)
 {
-	gcapp.mouseClick( event, x, y, flags, param );
+	gcapp.mouseClick(event, x, y, flags, param);
 }
 
-int main( int argc, char** argv )
+int main(int argc, char **argv)
 {
 	cv::CommandLineParser parser(argc, argv, "{help h||}{@input||}");
 	if (parser.has("help"))
@@ -301,13 +311,13 @@ int main( int argc, char** argv )
 		return 0;
 	}
 	string filename = parser.get<string>("@input");
-	if( filename.empty() )
+	if (filename.empty())
 	{
 		cout << "\nDurn, empty filename" << endl;
 		return 1;
 	}
-	Mat image = imread( filename, 1 );
-	if( image.empty() )
+	Mat image = imread(filename, 1);
+	if (image.empty())
 	{
 		cout << "\n Durn, couldn't read image filename " << filename << endl;
 		return 1;
@@ -316,16 +326,16 @@ int main( int argc, char** argv )
 	help();
 
 	const string winName = "image";
-	namedWindow( winName, WINDOW_AUTOSIZE );
-	setMouseCallback( winName, on_mouse, 0 );
+	namedWindow(winName, WINDOW_AUTOSIZE);
+	setMouseCallback(winName, on_mouse, 0);
 
-	gcapp.setImageAndWinName( image, winName );
+	gcapp.setImageAndWinName(image, winName);
 	gcapp.showImage();
 
-	for(;;)
+	for (;;)
 	{
 		char c = (char)waitKey(0);
-		switch( c )
+		switch (c)
 		{
 		case '\x1b':
 			cout << "Exiting ..." << endl;
@@ -339,7 +349,7 @@ int main( int argc, char** argv )
 			int iterCount = gcapp.getIterCount();
 			cout << "<" << iterCount << "... ";
 			int newIterCount = gcapp.nextIter();
-			if( newIterCount > iterCount )
+			if (newIterCount > iterCount)
 			{
 				gcapp.showImage();
 				cout << iterCount << ">" << endl;
@@ -351,6 +361,6 @@ int main( int argc, char** argv )
 	}
 
 exit_main:
-	destroyWindow( winName );
+	destroyWindow(winName);
 	return 0;
 }

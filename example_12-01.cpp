@@ -1,5 +1,5 @@
 // Example 12-1. Using cv::dft() and cv::idft() to accelerate
-// the computation of convolutions 
+// the computation of convolutions
 
 #include <iostream>
 #include <opencv2/opencv.hpp>
@@ -7,24 +7,28 @@
 using std::cout;
 using std::endl;
 
-int main(int argc, char** argv) {
-    if (argc != 2) {
-        cout    << "\nExample 12-1. Using cv::dft() and cv::idft() to accelerate the"
-                << "\n computation of convolutions"
-                << "\nFourier Transform\nUsage: "
-                << argv[0] << " <path/imagename>\n" << endl;
+int main(int argc, char **argv)
+{
+    if (argc != 2)
+    {
+        cout << "\nExample 12-1. Using cv::dft() and cv::idft() to accelerate the"
+             << "\n computation of convolutions"
+             << "\nFourier Transform\nUsage: "
+             << argv[0] << " <path/imagename>\n"
+             << endl;
         return -1;
     }
 
     cv::Mat A = cv::imread(argv[1], 0);
 
-    if (A.empty()) {
+    if (A.empty())
+    {
         cout << "Cannot load " << argv[1] << endl;
         return -1;
     }
 
     cv::Size patchSize(100, 100);
-    cv::Point topleft(A.cols / 2, A.rows /2);
+    cv::Point topleft(A.cols / 2, A.rows / 2);
     cv::Rect roi(topleft.x, topleft.y, patchSize.width, patchSize.height);
     cv::Mat B = A(roi);
 

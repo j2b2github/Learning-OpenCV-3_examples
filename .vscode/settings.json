@@ -1,0 +1,11 @@
+{
+    "cmake.debugConfig": {
+        "args":[
+            "../stuff.jpg"
+        ]
+    },
+    "files.associations": {
+        "qapplication": "cpp",
+        "ostream": "cpp"
+    }
+}

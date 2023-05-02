@@ -5,7 +5,8 @@
 
 using namespace std;
 
-void sum_rgb( const cv::Mat& src, cv::Mat& dst ) {
+void sum_rgb(const cv::Mat &src, cv::Mat &dst)
+{
 
 	// Split image onto the color planes.
 	//
@@ -22,29 +23,42 @@ void sum_rgb( const cv::Mat& src, cv::Mat& dst ) {
 
 	// Truncate values above 100 and rescale into dst.
 	//
-	cv::threshold( s, s, 100, 100, cv::THRESH_TRUNC );
+	cv::threshold(s, s, 100, 100, cv::THRESH_TRUNC);
 	s.convertTo(dst, b.type());
 }
 
-void help(char **argv) {
-	cout << "\nExample 10-2. Alternative method to combine and threshold image planes\n" << endl;
-	cout << "\nCall:\n" << argv[0] << " ../faces.jpg\n" << endl;
+void help(char **argv)
+{
+	cout << "\nExample 10-2. Alternative method to combine and threshold image planes\n"
+		 << endl;
+	cout << "\nCall:\n"
+		 << argv[0] << " ../faces.png\n"
+		 << endl;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
 	help(argv);
-	if(argc < 2) { cout << "specify input image" << endl; return -1; }
+	if (argc < 2)
+	{
+		cout << "specify input image" << endl;
+		return -1;
+	}
 
 	// Load the image from the given file name.
 	//
-	cv::Mat src = cv::imread( argv[1] ), dst;
-	if( src.empty() ) { cout << "can not load " << argv[1] << endl; return -1; }
-	sum_rgb( src, dst);
+	cv::Mat src = cv::imread(argv[1]), dst;
+	if (src.empty())
+	{
+		cout << "can not load " << argv[1] << endl;
+		return -1;
+	}
+	sum_rgb(src, dst);
 
 	// Create a named window with the name of the file and
 	// show the image in the window
 	//
-	cv::imshow( argv[1], dst );
+	cv::imshow(argv[1], dst);
 
 	// Idle until the user hits any key.
 	//

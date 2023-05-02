@@ -1,4 +1,4 @@
-//Example 15-4. Codebook algorithm implementation
+// Example 15-4. Codebook algorithm implementation
 #include <opencv2/opencv.hpp>
 #include <vector>
 #include <iostream>
@@ -7,139 +7,157 @@
 
 using namespace std;
 
-#define CHANNELS 3			//Always 3 because yuv
-int cbBounds[CHANNELS];		// IF pixel is within this bound outside of codebook, learn it, else form new code
-int minMod[CHANNELS];		// If pixel is lower than a codebook by this amount, it's matched
-int maxMod[CHANNELS];		// If pixel is high than a codebook by this amount, it's matched
+#define CHANNELS 3		// Always 3 because yuv
+int cbBounds[CHANNELS]; // IF pixel is within this bound outside of codebook, learn it, else form new code
+int minMod[CHANNELS];	// If pixel is lower than a codebook by this amount, it's matched
+int maxMod[CHANNELS];	// If pixel is high than a codebook by this amount, it's matched
 
-
-//The variable t counts the number of points we’ve accumulated since the start or the last
-//clear operation. Here’s how the actual codebook elements are described:
+// The variable t counts the number of points we’ve accumulated since the start or the last
+// clear operation. Here’s how the actual codebook elements are described:
 //
-class CodeElement {
-	public:
-		uchar learnHigh[CHANNELS];	//High side threshold for learning
-		uchar learnLow[CHANNELS];	//Low side threshold for learning
-		uchar max[CHANNELS];		//High side of box boundary
-		uchar min[CHANNELS];		//Low side of box boundary
-		int t_last_update;			//Allow us to kill stale entries
-		int stale; 					//max negative run (longest period of inactivity)
+class CodeElement
+{
+public:
+	uchar learnHigh[CHANNELS]; // High side threshold for learning
+	uchar learnLow[CHANNELS];  // Low side threshold for learning
+	uchar max[CHANNELS];	   // High side of box boundary
+	uchar min[CHANNELS];	   // Low side of box boundary
+	int t_last_update;		   // Allow us to kill stale entries
+	int stale;				   // max negative run (longest period of inactivity)
 
-		CodeElement() {
-			for(int i = 0; i < CHANNELS; i++)
-				learnHigh[i] = learnLow[i] = max[i] = min[i] = 0;
-			t_last_update = stale = 0;
+	CodeElement()
+	{
+		for (int i = 0; i < CHANNELS; i++)
+			learnHigh[i] = learnLow[i] = max[i] = min[i] = 0;
+		t_last_update = stale = 0;
+	}
+
+	CodeElement &operator=(const CodeElement &ce)
+	{
+		for (int i = 0; i < CHANNELS; i++)
+		{
+			learnHigh[i] = ce.learnHigh[i];
+			learnLow[i] = ce.learnLow[i];
+			min[i] = ce.min[i];
+			max[i] = ce.max[i];
 		}
-		
-		CodeElement& operator=( const CodeElement& ce ) {
-			for(int i=0; i<CHANNELS; i++ ) {
-				learnHigh[i] = ce.learnHigh[i];
-				learnLow[i] = ce.learnLow[i];
-				min[i] = ce.min[i];
-				max[i] = ce.max[i];
-			}
-			t_last_update = ce.t_last_update;
-			stale = ce.stale;
-			return *this;
-		}
-		
-		CodeElement( const CodeElement& ce ) { *this = ce; }
+		t_last_update = ce.t_last_update;
+		stale = ce.stale;
+		return *this;
+	}
+
+	CodeElement(const CodeElement &ce) { *this = ce; }
 };
 
 // You need one of these for each pixel in the video image (rowXcol)
 //
-class CodeBook : public vector<CodeElement> {
-	public:
-	int t;     //Count of every image learned on
-	
-	// count every access
-	CodeBook() { t=0; }
-	
-	// Default is an empty book
-	CodeBook( int n ) : vector<CodeElement>(n) { t=0; } // Construct book of size n
-};
+class CodeBook : public vector<CodeElement>
+{
+public:
+	int t; // Count of every image learned on
 
+	// count every access
+	CodeBook() { t = 0; }
+
+	// Default is an empty book
+	CodeBook(int n) : vector<CodeElement>(n) { t = 0; } // Construct book of size n
+};
 
 // Updates the codebook entry with a new data point
 // Note: cbBounds must be of length equal to numChannels
 //
 //
-int updateCodebook(  	// return CodeBook index
-	const cv::Vec3b& p, // incoming YUV pixel
-	CodeBook& c, 		// CodeBook for the pixel
-	int* cbBounds,	// Bounds for codebook (usually: {10,10,10})
-	int numChannels 	// Number of color channels we're learning
-	) {
-	if(c.size() == 0) 
+int updateCodebook(		// return CodeBook index
+	const cv::Vec3b &p, // incoming YUV pixel
+	CodeBook &c,		// CodeBook for the pixel
+	int *cbBounds,		// Bounds for codebook (usually: {10,10,10})
+	int numChannels		// Number of color channels we're learning
+)
+{
+	if (c.size() == 0)
 		c.t = 0;
-	c.t += 1;		//Record learning event
-	//SET HIGH AND LOW BOUNDS
+	c.t += 1; // Record learning event
+	// SET HIGH AND LOW BOUNDS
 	unsigned int high[3], low[3], n;
-	for( n=0; n<numChannels; n++ ) {
-		high[n] = p[n] + *(cbBounds+n); 
-		if( high[n] > 255 ) high[n] = 255;
-		low[n] = p[n] - *(cbBounds+n);
-		if( low[n] < 0) low[n] = 0;
+	for (n = 0; n < numChannels; n++)
+	{
+		high[n] = p[n] + *(cbBounds + n);
+		if (high[n] > 255)
+			high[n] = 255;
+		low[n] = p[n] - *(cbBounds + n);
+		if (low[n] < 0)
+			low[n] = 0;
 	}
-	
+
 	// SEE IF THIS FITS AN EXISTING CODEWORD
 	//
 	int i;
 	int matchChannel;
-	for( i=0; i<c.size(); i++ ) {
+	for (i = 0; i < c.size(); i++)
+	{
 		matchChannel = 0;
-		for( n=0; n<numChannels; n++ ) {
-			if( // Found an entry for this channel
-				( c[i].learnLow[n] <= p[n] ) && ( p[n] <= c[i].learnHigh[n]))
+		for (n = 0; n < numChannels; n++)
+		{
+			if ( // Found an entry for this channel
+				(c[i].learnLow[n] <= p[n]) && (p[n] <= c[i].learnHigh[n]))
 				matchChannel++;
-			}
-		
-		if( matchChannel == numChannels ) {// If an entry was found
-			c[i].t_last_update = c.t; 
-			
+		}
+
+		if (matchChannel == numChannels)
+		{ // If an entry was found
+			c[i].t_last_update = c.t;
+
 			// adjust this codeword for the first channel
 			//
-			for( n=0; n<numChannels; n++ ) {
-				if( c[i].max[n] < p[n] )
+			for (n = 0; n < numChannels; n++)
+			{
+				if (c[i].max[n] < p[n])
 					c[i].max[n] = p[n];
-				else if( c[i].min[n] > p[n] ) 
+				else if (c[i].min[n] > p[n])
 					c[i].min[n] = p[n];
 			}
 			break;
 		}
 	}
-	
+
 	// OVERHEAD TO TRACK POTENTIAL STALE ENTRIES
 	//
-	for( int s=0; s<c.size(); s++ ) {
-	
+	for (int s = 0; s < c.size(); s++)
+	{
+
 		// Track which codebook entries are going stale:
 		//
 		int negRun = c.t - c[s].t_last_update;
-		if( c[s].stale < negRun ) c[s].stale = negRun;
+		if (c[s].stale < negRun)
+			c[s].stale = negRun;
 	}
-	
+
 	// ENTER A NEW CODEWORD IF NEEDED
 	//
-	if( i == c.size() ) {
+	if (i == c.size())
+	{
 		// if no existing codeword found, make one
 		CodeElement ce;
-		for( n=0; n<numChannels; n++ ) {
+		for (n = 0; n < numChannels; n++)
+		{
 			ce.learnHigh[n] = high[n];
 			ce.learnLow[n] = low[n];
 			ce.max[n] = p[n];
 			ce.min[n] = p[n];
 		}
-			ce.t_last_update = c.t;
-			ce.stale = 0;
-			c.push_back( ce );
+		ce.t_last_update = c.t;
+		ce.stale = 0;
+		c.push_back(ce);
 	}
-	
+
 	// SLOWLY ADJUST LEARNING BOUNDS
 	//
-	for( n=0; n<numChannels; n++ ) {
-		if( c[i].learnHigh[n] < high[n]) c[i].learnHigh[n] += 1;
-		if( c[i].learnLow[n] > low[n] ) c[i].learnLow[n] -= 1;
+	for (n = 0; n < numChannels; n++)
+	{
+		if (c[i].learnHigh[n] < high[n])
+			c[i].learnHigh[n] += 1;
+		if (c[i].learnLow[n] > low[n])
+			c[i].learnLow[n] -= 1;
 	}
 	return c.size();
 }
@@ -152,16 +170,18 @@ int clearStaleEntries(
 	// return number of entries cleared
 	CodeBook &c
 	// Codebook to clean up
-){
-	int staleThresh = c.t>>1;
+)
+{
+	int staleThresh = c.t >> 1;
 	int *keep = new int[c.size()];
 	int keepCnt = 0;
-	
+
 	// SEE WHICH CODEBOOK ENTRIES ARE TOO STALE
 	//
 	int foogo2 = 0;
-	for( int i=0; i<c.size(); i++ ){
-		if(c[i].stale > staleThresh) 
+	for (int i = 0; i < c.size(); i++)
+	{
+		if (c[i].stale > staleThresh)
 			keep[i] = 0; // Mark for destruction
 		else
 		{
@@ -169,27 +189,31 @@ int clearStaleEntries(
 			keepCnt += 1;
 		}
 	}
-	
+
 	// move the entries we want to keep to the front of the vector and then
 	// truncate to the correct length once all of the good stuff is saved.
 	//
 	int k = 0;
 	int numCleared = 0;
-	for( int ii=0; ii<c.size(); ii++ ) {
-		if( keep[ii] ) {
+	for (int ii = 0; ii < c.size(); ii++)
+	{
+		if (keep[ii])
+		{
 			c[k] = c[ii];
 			// We have to refresh these entries for next clearStale
 			c[k].t_last_update = 0;
 			k++;
-		} else {
+		}
+		else
+		{
 			numCleared++;
 		}
 	}
-	c.resize( keepCnt );
+	c.resize(keepCnt);
 	delete[] keep;
 	return numCleared;
 }
-	
+
 // Given a pixel and a codebook, determine whether the pixel is
 // covered by the codebook
 //
@@ -197,39 +221,45 @@ int clearStaleEntries(
 // minMod and maxMod must have length numChannels,
 // e.g. 3 channels => minMod[3], maxMod[3]. There is one min and
 //      one max threshold per channel.
-// 
-uchar backgroundDiff( // return 0 => background, 255 => foreground
-const cv::Vec3b& p,   // Pixel (YUV)
-CodeBook& c,          // Codebook
-int numChannels,      // Number of channels we are testing
-int* minMod_,          // Add this (possibly negative) number onto max level
-                      //    when determining whether new pixel is foreground
-int* maxMod_           // Subtract this (possibly negative) number from min
-                      //    level when determining whether new pixel is
-                      //    foreground
-) {
+//
+uchar backgroundDiff(	// return 0 => background, 255 => foreground
+	const cv::Vec3b &p, // Pixel (YUV)
+	CodeBook &c,		// Codebook
+	int numChannels,	// Number of channels we are testing
+	int *minMod_,		// Add this (possibly negative) number onto max level
+						//    when determining whether new pixel is foreground
+	int *maxMod_		// Subtract this (possibly negative) number from min
+						//    level when determining whether new pixel is
+						//    foreground
+)
+{
 	int matchChannel;
-	
+
 	// SEE IF THIS FITS AN EXISTING CODEWORD
 	//
 	int i;
-	for( i=0; i<c.size(); i++ ) {
+	for (i = 0; i < c.size(); i++)
+	{
 		matchChannel = 0;
-		for( int n=0; n<numChannels; n++ ) {
-			if((c[i].min[n] - minMod_[n] <= p[n] ) && (p[n] <= c[i].max[n] + maxMod_[n]))
+		for (int n = 0; n < numChannels; n++)
+		{
+			if ((c[i].min[n] - minMod_[n] <= p[n]) && (p[n] <= c[i].max[n] + maxMod_[n]))
 			{
 				matchChannel++; // Found an entry for this channel
-			} else {
+			}
+			else
+			{
 				break;
 			}
 		}
-		if(matchChannel == numChannels) {
+		if (matchChannel == numChannels)
+		{
 			break; // Found an entry that matched all channels
 		}
 	}
-	if( i >= c.size() )	//No match with codebook => foreground
+	if (i >= c.size()) // No match with codebook => foreground
 		return 255;
-	return 0; 			//Else background
+	return 0; // Else background
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -237,99 +267,118 @@ int* maxMod_           // Subtract this (possibly negative) number from min
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 // Just make a convienience class (assumes image will not change size in video);
-class CbBackgroudDiff {
-	public:
-	cv::Mat Iyuv;					//Will hold the yuv converted image 
-	cv::Mat mask;					//Will hold the background difference mask
-	vector<CodeBook> codebooks;   	//Will hold a CodeBook for each pixel
-	int row, col, image_length;		//How many pixels are in the image
-	
-	//Constructor
-	void init(cv::Mat &I_from_video) {
-		vector<int> v(3,10);
+class CbBackgroudDiff
+{
+public:
+	cv::Mat Iyuv;				// Will hold the yuv converted image
+	cv::Mat mask;				// Will hold the background difference mask
+	vector<CodeBook> codebooks; // Will hold a CodeBook for each pixel
+	int row, col, image_length; // How many pixels are in the image
+
+	// Constructor
+	void init(cv::Mat &I_from_video)
+	{
+		vector<int> v(3, 10);
 		set_global_vecs(cbBounds, v);
-		v[0] = 6; v[1] = 20; v[2] = 8; //Just some decent defaults for low side
+		v[0] = 6;
+		v[1] = 20;
+		v[2] = 8; // Just some decent defaults for low side
 		set_global_vecs(minMod, v);
-		v[0] = 70; v[1] = 20; v[2] = 6; //Decent defaults for high side
+		v[0] = 70;
+		v[1] = 20;
+		v[2] = 6; // Decent defaults for high side
 		set_global_vecs(maxMod, v);
 		Iyuv.create(I_from_video.size(), I_from_video.type());
 		mask.create(I_from_video.size(), CV_8UC1);
 		row = I_from_video.rows;
 		col = I_from_video.cols;
-		image_length = row*col;
+		image_length = row * col;
 		cout << "(row,col,len) = (" << row << ", " << col << ", " << image_length << ")" << endl;
 		codebooks.resize(image_length);
 	}
-	
-	CbBackgroudDiff(cv::Mat &I_from_video) {
+
+	CbBackgroudDiff(cv::Mat &I_from_video)
+	{
 		init(I_from_video);
 	}
-	
+
 	CbBackgroudDiff(){};
-	
-	//Convert to YUV
+
+	// Convert to YUV
 	void convert_to_yuv(cv::Mat &Irgb)
 	{
 		cvtColor(Irgb, Iyuv, cv::COLOR_BGR2YUV);
 	}
-	
-	int size_check(cv::Mat &I) { //Check that image doesn't change size, return -1 if size doesn't match, else 0
+
+	int size_check(cv::Mat &I)
+	{ // Check that image doesn't change size, return -1 if size doesn't match, else 0
 		int ret = 0;
-		if((row != I.rows) || (col != I.cols)) {
+		if ((row != I.rows) || (col != I.cols))
+		{
 			cerr << "ERROR: Size changed! old[" << row << ", " << col << "], now [" << I.rows << ", " << I.cols << "]!" << endl;
 			ret = -1;
 		}
 		return ret;
 	}
-	
-	//Utilities for setting gloabals
-	void set_global_vecs(int *globalvec, vector<int> &vec) {
-		if(vec.size() != CHANNELS) {
+
+	// Utilities for setting gloabals
+	void set_global_vecs(int *globalvec, vector<int> &vec)
+	{
+		if (vec.size() != CHANNELS)
+		{
 			cerr << "Input vec[" << vec.size() << "] should equal CHANNELS [" << CHANNELS << "]" << endl;
 			vec.resize(CHANNELS, 10);
 		}
 		int i = 0;
-		for (vector<int>::iterator it = vec.begin(); it != vec.end(); ++it, ++i) {
-			 globalvec[i] = *it;
-		 }
-	 }
+		for (vector<int>::iterator it = vec.begin(); it != vec.end(); ++it, ++i)
+		{
+			globalvec[i] = *it;
+		}
+	}
 
-	//Background operations
-	int updateCodebookBackground(cv::Mat &Irgb) { //Learn codebook, -1 if error, else total # of codes
+	// Background operations
+	int updateCodebookBackground(cv::Mat &Irgb)
+	{ // Learn codebook, -1 if error, else total # of codes
 		convert_to_yuv(Irgb);
-		if(size_check(Irgb))
+		if (size_check(Irgb))
 			return -1;
 		int total_codebooks = 0;
 		cv::Mat_<cv::Vec3b>::iterator Iit = Iyuv.begin<cv::Vec3b>(), IitEnd = Iyuv.end<cv::Vec3b>();
 		vector<CodeBook>::iterator Cit = codebooks.begin(), CitEnd = codebooks.end();
-		for(; Iit != IitEnd; ++Iit,++Cit) {
-			total_codebooks += updateCodebook(*Iit,*Cit,cbBounds,CHANNELS);
+		for (; Iit != IitEnd; ++Iit, ++Cit)
+		{
+			total_codebooks += updateCodebook(*Iit, *Cit, cbBounds, CHANNELS);
 		}
-		if(Cit != CitEnd)
+		if (Cit != CitEnd)
 			cerr << "ERROR: Cit != CitEnd in updateCodeBackground(...) " << endl;
-		return(total_codebooks);
+		return (total_codebooks);
 	}
 
-	int clearStaleEntriesBackground() { //Clean out stuff that hasn't been updated for a long time
+	int clearStaleEntriesBackground()
+	{ // Clean out stuff that hasn't been updated for a long time
 		int total_cleared = 0;
 		vector<CodeBook>::iterator Cit = codebooks.begin(), CitEnd = codebooks.end();
-		for(; Cit != CitEnd; ++Cit) {
+		for (; Cit != CitEnd; ++Cit)
+		{
 			total_cleared += clearStaleEntries(*Cit);
 		}
-		return(total_cleared);
+		return (total_cleared);
 	}
 
-	int backgroundDiffBackground(cv::Mat &Irgb) {  //Take the background difference of the image
+	int backgroundDiffBackground(cv::Mat &Irgb)
+	{ // Take the background difference of the image
 		convert_to_yuv(Irgb);
-		if(size_check(Irgb))
+		if (size_check(Irgb))
 			return -1;
 		cv::Mat_<cv::Vec3b>::iterator Iit = Iyuv.begin<cv::Vec3b>(), IitEnd = Iyuv.end<cv::Vec3b>();
 		vector<CodeBook>::iterator Cit = codebooks.begin(), CitEnd = codebooks.end();
 		cv::Mat_<uchar>::iterator Mit = mask.begin<uchar>(), MitEnd = mask.end<uchar>();
-		for(; Iit != IitEnd; ++Iit,++Cit,++Mit) {
-			*Mit = backgroundDiff(*Iit,*Cit,CHANNELS,minMod,maxMod);
+		for (; Iit != IitEnd; ++Iit, ++Cit, ++Mit)
+		{
+			*Mit = backgroundDiff(*Iit, *Cit, CHANNELS, minMod, maxMod);
 		}
-		if((Cit != CitEnd)||(Mit != MitEnd)){
+		if ((Cit != CitEnd) || (Mit != MitEnd))
+		{
 			cerr << "ERROR: Cit != CitEnd and, or Mit != MitEnd in updateCodeBackground(...) " << endl;
 			return -1;
 		}
@@ -337,50 +386,89 @@ class CbBackgroudDiff {
 	}
 }; // end CbBackgroudDiff
 
-
-void help(char** argv ) {
+void help(char **argv)
+{
 	cout << "\n"
-	<< "Train a codebook background model on the first <#frames to train on> frames of an incoming video, then run the model\n"
-	<< argv[0] <<" <#frames to train on> <avi_path/filename>\n"
-	<< "For example:\n"
-	<< argv[0] << " 50 ../tree.avi\n"
-	<< "'A' or 'a' to adjust thresholds, esc, 'q' or 'Q' to quit"
-	<< endl;
+		 << "Train a codebook background model on the first <#frames to train on> frames of an incoming video, then run the model\n"
+		 << argv[0] << " <#frames to train on> <avi_path/filename>\n"
+		 << "For example:\n"
+		 << argv[0] << " 50 ../tree.avi\n"
+		 << "'A' or 'a' to adjust thresholds, esc, 'q' or 'Q' to quit"
+		 << endl;
 }
 
-//Adjusting the distance you have to be on the low side (minMod) or high side (maxMod) of a codebook
-//to be considered as recognized/background
+// Adjusting the distance you have to be on the low side (minMod) or high side (maxMod) of a codebook
+// to be considered as recognized/background
 //
-void adjustThresholds(char* charstr, cv::Mat &Irgb, CbBackgroudDiff &bgd) {
+void adjustThresholds(char *charstr, cv::Mat &Irgb, CbBackgroudDiff &bgd)
+{
 	int key = 1;
-	int y = 1,u = 0,v = 0, index = 0, thresh = 0;
-	if(thresh)
+	int y = 1, u = 0, v = 0, index = 0, thresh = 0;
+	if (thresh)
 		cout << "yuv[" << y << "][" << u << "][" << v << "] maxMod active" << endl;
 	else
 		cout << "yuv[" << y << "][" << u << "][" << v << "] minMod active" << endl;
 	cout << "minMod[" << minMod[0] << "][" << minMod[1] << "][" << minMod[2] << "]" << endl;
 	cout << "maxMod[" << maxMod[0] << "][" << maxMod[1] << "][" << maxMod[2] << "]" << endl;
-	while((key = cv::waitKey()) != 27 && key != 'Q' && key != 'q')  // Esc or Q or q to exit
+	while ((key = cv::waitKey()) != 27 && key != 'Q' && key != 'q') // Esc or Q or q to exit
 	{
-		if(thresh)
+		if (thresh)
 			cout << "yuv[" << y << "][" << u << "][" << v << "] maxMod active" << endl;
 		else
 			cout << "yuv[" << y << "][" << u << "][" << v << "] minMod active" << endl;
 		cout << "minMod[" << minMod[0] << "][" << minMod[1] << "][" << minMod[2] << "]" << endl;
 		cout << "maxMod[" << maxMod[0] << "][" << maxMod[1] << "][" << maxMod[2] << "]" << endl;
-		
-		if(key == 'y') { y = 1; u = 0; v = 0; index = 0;}
-		if(key == 'u') { y = 0; u = 1; v = 0; index = 1;}
-		if(key == 'v') { y = 0; u = 0; v = 1; index = 2;}
-		if(key == 'l') { thresh = 0;} //minMod
-		if(key == 'h') { thresh = 1;} //maxMod
-		if(key == '.') { //Up
-			if(thresh == 0) { minMod[index] += 4;}
-			if(thresh == 1) { maxMod[index] += 4;}
+
+		if (key == 'y')
+		{
+			y = 1;
+			u = 0;
+			v = 0;
+			index = 0;
 		}
-		if(key == ',') { //Down
-			if(thresh == 0) { minMod[index] -= 4;}
-			if(thresh == 1) { maxMod[index] -= 4;}
+		if (key == 'u')
+		{
+			y = 0;
+			u = 1;
+			v = 0;
+			index = 1;
+		}
+		if (key == 'v')
+		{
+			y = 0;
+			u = 0;
+			v = 1;
+			index = 2;
+		}
+		if (key == 'l')
+		{
+			thresh = 0;
+		} // minMod
+		if (key == 'h')
+		{
+			thresh = 1;
+		} // maxMod
+		if (key == '.')
+		{ // Up
+			if (thresh == 0)
+			{
+				minMod[index] += 4;
+			}
+			if (thresh == 1)
+			{
+				maxMod[index] += 4;
+			}
+		}
+		if (key == ',')
+		{ // Down
+			if (thresh == 0)
+			{
+				minMod[index] -= 4;
+			}
+			if (thresh == 1)
+			{
+				maxMod[index] -= 4;
+			}
 		}
 		cout << "y,u,v for channel; l for minMod, h for maxMod threshold; , for down, . for up; esq or q to quit;" << endl;
 		bgd.backgroundDiffBackground(Irgb);
@@ -388,19 +476,20 @@ void adjustThresholds(char* charstr, cv::Mat &Irgb, CbBackgroudDiff &bgd) {
 	}
 }
 
-
 ////////////////////////////////////////////////////////////////
-int main( int argc, char** argv) {
-	cv::namedWindow( argv[0], cv::WINDOW_AUTOSIZE );
+int main(int argc, char **argv)
+{
+	cv::namedWindow(argv[0], cv::WINDOW_AUTOSIZE);
 	cv::VideoCapture cap;
-	if((argc < 3)|| !cap.open(argv[2])) {
+	if ((argc < 3) || !cap.open(argv[2]))
+	{
 		cerr << "Couldn't run the program" << endl;
 		help(argv);
 		cap.open(0);
 		return -1;
 	}
-	int number_to_train_on = atoi( argv[1] );
-	cv::Mat image; 
+	int number_to_train_on = atoi(argv[1]);
+	cv::Mat image;
 	CbBackgroudDiff bgd;
 
 	// FIRST PROCESSING LOOP (TRAINING):
@@ -408,19 +497,25 @@ int main( int argc, char** argv) {
 	int frame_count = 0;
 	int key;
 	bool first_frame = true;
-	cout << "Total frames to train on = " << number_to_train_on << endl; //db
+	cout << "Total frames to train on = " << number_to_train_on << endl; // db
 	char seg[] = "Segmentation";
-	while(1) {
+	while (1)
+	{
 		cout << "frame#: " << frame_count;
 		cap >> image;
-		if( !image.data ) exit(1); // Something went wrong, abort
-		if(frame_count == 0) { bgd.init(image);}
-		
+		if (!image.data)
+			exit(1); // Something went wrong, abort
+		if (frame_count == 0)
+		{
+			bgd.init(image);
+		}
+
 		cout << ", Codebooks: " << bgd.updateCodebookBackground(image) << endl;
-		
-		cv::imshow( argv[0], image );
+
+		cv::imshow(argv[0], image);
 		frame_count++;
-		if( (key = cv::waitKey(7)) == 27 || key == 'q' || key == 'Q' || frame_count >= number_to_train_on) break; //Allow early exit on space, esc, q
+		if ((key = cv::waitKey(7)) == 27 || key == 'q' || key == 'Q' || frame_count >= number_to_train_on)
+			break; // Allow early exit on space, esc, q
 	}
 
 	// We have accumulated our training, now create the models
@@ -428,30 +523,31 @@ int main( int argc, char** argv) {
 	cout << "Created the background model" << endl;
 	cout << "Total entries cleared = " << bgd.clearStaleEntriesBackground() << endl;
 	cout << "Press a key to start background differencing, 'a' to set thresholds, esc or q or Q to quit" << endl;
-	
+
 	// SECOND PROCESSING LOOP (TESTING):
 	//
-	cv::namedWindow( seg, cv::WINDOW_AUTOSIZE );
-	while((key = cv::waitKey()) != 27 || key == 'q' || key == 'Q'  ) { // esc, 'q' or 'Q' to exit
+	cv::namedWindow(seg, cv::WINDOW_AUTOSIZE);
+	while ((key = cv::waitKey()) != 27 || key == 'q' || key == 'Q')
+	{ // esc, 'q' or 'Q' to exit
 		cap >> image;
-		if( !image.data ) exit(0);
-		cout <<  frame_count++ << " 'a' to adjust threholds" << endl;
-		if(key == 'a') {
+		if (!image.data)
+			exit(0);
+		cout << frame_count++ << " 'a' to adjust threholds" << endl;
+		if (key == 'a')
+		{
 			cout << "Adjusting thresholds" << endl;
-		cout << "y,u,v for channel; l for minMod, h for maxMod threshold; , for down, . for up; esq or q to quit;" << endl;
-			adjustThresholds(seg,image,bgd);
+			cout << "y,u,v for channel; l for minMod, h for maxMod threshold; , for down, . for up; esq or q to quit;" << endl;
+			adjustThresholds(seg, image, bgd);
 		}
-		else {
-			if(bgd.backgroundDiffBackground(image)) {
+		else
+		{
+			if (bgd.backgroundDiffBackground(image))
+			{
 				cerr << "ERROR, bdg.backgroundDiffBackground(...) failed" << endl;
 				exit(-1);
 			}
 		}
-		cv::imshow("Segmentation",bgd.mask);
+		cv::imshow("Segmentation", bgd.mask);
 	}
 	exit(0);
 }
-
-
-
-

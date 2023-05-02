@@ -59,13 +59,13 @@ static void onMouseClick(int event, int x, int y, int, void*) {
 		drawr = 2;
 	}
     if(drawr == 1) { //Just moving
-			drawRect.setTo(0);
-			cv::rectangle(drawRect, cv::Point(x_0,y_0), cv::Point(x,y), cv::Scalar(0,0,255), -1);
- 
-			cv::addWeighted(img,0.7,drawRect,0.3, 0, img_preview);
-			x_1 = x; y_1 = y;    
-			cv::imshow("image", img_preview);
-			return;
+        drawRect.setTo(0);
+        cv::rectangle(drawRect, cv::Point(x_0,y_0), cv::Point(x,y), cv::Scalar(0,0,255), -1);
+
+        cv::addWeighted(img,0.7,drawRect,0.3, 0, img_preview);
+        x_1 = x; y_1 = y;    
+        cv::imshow("image", img_preview);
+        return;
 	}
 
     if (drawr == 2) {

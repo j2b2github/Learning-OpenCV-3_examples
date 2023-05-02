@@ -1,25 +1,29 @@
-//Exercises_9_4.cpp Exercises at end of Chapter 9
+// Exercises_9_4.cpp Exercises at end of Chapter 9
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
 using namespace cv;
 using namespace std;
 
- 
-void help(const char **argv) {
+void help(const char **argv)
+{
 	cout << "\n\n"
-		<< "This program solves the Exercise 4、5 at the end of Chapter 9 \n"
-		<< "Call:\n"
-		<< argv[0] << " <path/image_name1>" << " <path/image_name2>\n\n"
-		<< "For example: ./" << argv[0] << " ../left.jpg "<< " ../left.jpg\n"
-		<< endl;
+		 << "This program solves the Exercise 4、5 at the end of Chapter 9 \n"
+		 << "Call:\n"
+		 << argv[0] << " <path/image_name1>"
+		 << " <path/image_name2>\n\n"
+		 << "For example: ./" << argv[0] << "/usr/local/share/opencv4/samples/data/lena.jpg"
+    	 << "/usr/local/share/opencv4/samples/data/lena_tmpl.jpg\n"
+		 << endl;
 }
 
-int main( int argc, const char** argv )
+int main(int argc, const char **argv)
 {
 	help(argv);
-	if(argc < 3) {
-		cout << "\nERROR: You had too few parameters.\n" << endl;
+	if (argc < 3)
+	{
+		cout << "\nERROR: You had too few parameters.\n"
+			 << endl;
 		return -1;
 	}
 	Mat temp;
@@ -36,31 +40,31 @@ int main( int argc, const char** argv )
 	and then display.
 	d.  Explain the difference between cleandiff and dirtydiff.                                                                     */
 	/************************************************************************/
-	Mat src1 = imread(argv[1],IMREAD_GRAYSCALE);
-	Mat src2 = imread(argv[2],IMREAD_GRAYSCALE);
+	Mat src1 = imread(argv[1], IMREAD_GRAYSCALE);
+	Mat src2 = imread(argv[2], IMREAD_GRAYSCALE);
 	if (src1.empty() || src2.empty())
 	{
-		cout << "\nERROR: parameters is not a image name.\n" << endl;
+		cout << "\nERROR: parameters is not a image name.\n"
+			 << endl;
 		return -1;
 	}
-	//a
-	Mat diff12 =  src1 - src2;
-	imshow("diff12",diff12);
-	//b
+	// a
+	Mat diff12 = src1 - src2;
+	imshow("diff12", diff12);
+	// b
 	Mat cleandiff;
-	erode(diff12,cleandiff,Mat());
-	dilate(cleandiff,cleandiff,Mat());
-	imshow("cleandiff",cleandiff);
-	//c
+	erode(diff12, cleandiff, Mat());
+	dilate(cleandiff, cleandiff, Mat());
+	imshow("cleandiff", cleandiff);
+	// c
 	Mat dirtydiff;
-	dilate(diff12,dirtydiff,Mat());
-	erode(dirtydiff,dirtydiff,Mat());
-	imshow("dirtydiff",dirtydiff);
-	//d
-	absdiff(cleandiff,dirtydiff,temp) ;
-	imshow("absdiff",temp);
-	//the difference between cleandiff and dirtydiff is the difference between of "open" and "close"
+	dilate(diff12, dirtydiff, Mat());
+	erode(dirtydiff, dirtydiff, Mat());
+	imshow("dirtydiff", dirtydiff);
+	// d
+	absdiff(cleandiff, dirtydiff, temp);
+	imshow("absdiff", temp);
+	// the difference between cleandiff and dirtydiff is the difference between of "open" and "close"
 	waitKey();
 	return 0;
-
 }

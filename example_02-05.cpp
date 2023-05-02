@@ -2,56 +2,55 @@
 
 #include <opencv2/opencv.hpp>
 
-
-
-void help(char** argv ) {
-	std::cout << "\n"
-	<< "2-05: load and smooth an image before displaying \n"
-	<< argv[0] <<" <path/video>\n"
-	<< "For example:\n"
-	<< argv[0] << " ../tree.avi\n"
-	<< std::endl;
+void help(char **argv)
+{
+    std::cout << "\n"
+              << "2-05: load and smooth an image before displaying \n"
+              << argv[0] << " <path/image>\n"
+              << "For example:\n"
+              << argv[0] << " ../fruits.jpg\n"
+              << std::endl;
 }
-	
 
-int main( int argc, char** argv ) {
-	
-	if (argc != 2) {
-		help(argv);
-		return 0;
-	}
+int main(int argc, char **argv)
+{
 
-  // Load an image specified on the command line.
-  //
-  cv::Mat image = cv::imread(argv[1],-1);
+    if (argc != 2)
+    {
+        help(argv);
+        return 0;
+    }
 
-  // Create some windows to show the input
-  // and output images in.
-  //
-  cv::namedWindow( "Example 2-5-in", cv::WINDOW_AUTOSIZE );
-  cv::namedWindow( "Example 2-5-out", cv::WINDOW_AUTOSIZE );
+    // Load an image specified on the command line.
+    //
+    cv::Mat image = cv::imread(argv[1], -1);
 
-  // Create a window to show our input image
-  //
-  cv::imshow( "Example 2-5-in", image );
+    // Create some windows to show the input
+    // and output images in.
+    //
+    cv::namedWindow("Example 2-5-in", cv::WINDOW_AUTOSIZE);
+    cv::namedWindow("Example 2-5-out", cv::WINDOW_AUTOSIZE);
 
-  // Create an image to hold the smoothed output
-  //
-  cv::Mat out;
+    // Create a window to show our input image
+    //
+    cv::imshow("Example 2-5-in", image);
 
-  // Do the smoothing
-  // ( Note: Could use GaussianBlur(), blur(), medianBlur() or
-  // bilateralFilter(). )
-  //
-  cv::GaussianBlur( image, out, cv::Size(5,5), 3, 3);
-  cv::GaussianBlur( out, out, cv::Size(5,5), 3, 3);
+    // Create an image to hold the smoothed output
+    //
+    cv::Mat out;
 
-  // Show the smoothed image in the output window
-  //
-  cv::imshow( "Example 2-5-out", out );
+    // Do the smoothing
+    // ( Note: Could use GaussianBlur(), blur(), medianBlur() or
+    // bilateralFilter(). )
+    //
+    cv::GaussianBlur(image, out, cv::Size(5, 5), 3, 3);
+    cv::GaussianBlur(out, out, cv::Size(5, 5), 3, 3);
 
-  // Wait for the user to hit a key, windows will self destruct
-  //
-  cv::waitKey( 0 );
+    // Show the smoothed image in the output window
+    //
+    cv::imshow("Example 2-5-out", out);
 
+    // Wait for the user to hit a key, windows will self destruct
+    //
+    cv::waitKey(0);
 }

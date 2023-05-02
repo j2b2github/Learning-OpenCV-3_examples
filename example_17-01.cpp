@@ -9,22 +9,23 @@
 using std::cout;
 using std::endl;
 
-#define phi2xy(mat) \
+#define phi2xy(mat)                                                         \
     cv::Point(cvRound(img.cols / 2 + img.cols / 3 * cos(mat.at<float>(0))), \
               cvRound(img.rows / 2 - img.cols / 3 * sin(mat.at<float>(0))))
 
-
-void help(char** argv ) {
+void help(char **argv)
+{
     cout << "\n"
          << "Example 17-1: code for using cv::KalmanFilter\n"
          << argv[0] << "\n\n"
          << "For example:\n"
-         << argv[0] <<"\n\n"
+         << argv[0] << "\n\n"
          << "Esc to quit\n"
          << endl;
 }
 
-int main(int argc, char** argv) {
+int main(int argc, char **argv)
+{
     help(argv);
 
     // Initialize, create Kalman filter object, window, random number
@@ -65,7 +66,8 @@ int main(int argc, char** argv) {
     //
     randn(kalman.statePost, 0.0, 0.1);
 
-    for (;;) {
+    for (;;)
+    {
         // predict point position
         //
         cv::Mat y_k = kalman.predict();
@@ -73,16 +75,16 @@ int main(int argc, char** argv) {
         // generate measurement (z_k)
         //
         cv::randn(z_k, 0.0,
-            sqrt(static_cast<double>(kalman.measurementNoiseCov.at<float>(0, 0))));
-        z_k = kalman.measurementMatrix*x_k + z_k;
+                  sqrt(static_cast<double>(kalman.measurementNoiseCov.at<float>(0, 0))));
+        z_k = kalman.measurementMatrix * x_k + z_k;
 
         // plot points (e.g., convert
         //
         img = cv::Scalar::all(0);
-        cv::circle(img, phi2xy(z_k), 4, cv::Scalar(128, 255, 255));  // observed
-        cv::circle(img, phi2xy(y_k), 4, cv::Scalar(255, 255, 255), 2);  // predicted
-        cv::circle(img, phi2xy(x_k), 4, cv::Scalar(0, 0, 255));  // actual to
-                                                                 // planar co-ordinates and draw
+        cv::circle(img, phi2xy(z_k), 4, cv::Scalar(128, 255, 255));    // observed
+        cv::circle(img, phi2xy(y_k), 4, cv::Scalar(255, 255, 255), 2); // predicted
+        cv::circle(img, phi2xy(x_k), 4, cv::Scalar(0, 0, 255));        // actual to
+                                                                       // planar co-ordinates and draw
 
         cv::imshow("Kalman", img);
 
@@ -94,10 +96,11 @@ int main(int argc, char** argv) {
         // and also apply the "process" noise w_k
         //
         cv::randn(w_k, 0.0, sqrt(static_cast<double>(kalman.processNoiseCov.at<float>(0, 0))));
-        x_k = kalman.transitionMatrix*x_k + w_k;
+        x_k = kalman.transitionMatrix * x_k + w_k;
 
         // exit if user hits 'Esc'
-        if ((cv::waitKey(100) & 255) == 27) {
+        if ((cv::waitKey(100) & 255) == 27)
+        {
             break;
         }
     }
